@@ -7,16 +7,16 @@ using namespace std;
 using namespace cv;
 
 
-// ²¹³¥¾µ×Óºñ¶ÈºÍÆåÅÌºñ¶È
+// è¡¥å¿é•œå­åšåº¦å’Œæ£‹ç›˜åšåº¦
 #define MIRROR_OFFSET 3
 #define CHESSBOARD_OFFSET 5
 
-// ¾µ×ÓÉÏÌùÆåÅÌ¸ñ³ß´ç
+// é•œå­ä¸Šè´´æ£‹ç›˜æ ¼å°ºå¯¸
 #define CHESSBOARD_HEIGHT 11
 #define CHESSBOARD_WIDTH  16
 #define CHESSBOARD_SIZE   30
 
-// ¾µ×ÓÖĞĞéÏñÆåÅÌ¸ñ³ß´ç
+// é•œå­ä¸­è™šåƒæ£‹ç›˜æ ¼å°ºå¯¸
 #define CHESSBOARD_HEIGHT_SCREEN 7
 #define CHESSBOARD_WIDTH_SCREEN  18
 #define CHESSBOARD_SIZE_SCREEN   56.7
@@ -25,19 +25,16 @@ void CalculateTFM(Mat &tfm, Mat rvecs, Mat tvecs);
 
 int main(int argc, char *argv[]) {
 
-	string floder_path = "..\\20210528\\1_97";  //´æ·ÅÄ³¸öÏà»úÆåÅÌ¸ñÍ¼Æ¬µÄÄ¿Â¼
+	string floder_path = "..\\20210528\\1_97";  //å­˜æ”¾ç›¸æœºæ£‹ç›˜æ ¼å›¾ç‰‡çš„ç›®å½•
 	vector<cv::String> fileNames;
 	fileNames.clear();
-	glob(floder_path + "//*.jpg", fileNames, false);  // ÆåÅÌ¸ñÍ¼Æ¬.jpgºó×º
+	glob(floder_path + "//*.jpg", fileNames, false);  // æ£‹ç›˜æ ¼å›¾ç‰‡.jpgåç¼€
 	size_t count = fileNames.size();
 	for (int i = 0; i < count; i++){
 		Mat ir_src = imread(fileNames[i], CV_LOAD_IMAGE_ANYCOLOR | CV_LOAD_IMAGE_ANYDEPTH);
 		//cout << fileNames[i] << endl << endl;
 		//
 		string out_path = fileNames[i].substr(0, fileNames[i].length() - 4); //
-		
-		
-
 		if (ir_src.empty()) {
 			cout << "Images Loading Error!" << endl;
 			return -1;
@@ -51,7 +48,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		// Load Camera Param
-		string cameparamfile = floder_path + "//param-RGBD.yml";  //Ïà»úÄÚ²Î
+		string cameparamfile = floder_path + "//param-RGBD.yml";  //ç›¸æœºå†…å‚
 		FileStorage fs(cameparamfile, FileStorage::READ);
 		if (!fs.isOpened())
 		{
@@ -70,7 +67,7 @@ int main(int argc, char *argv[]) {
 		Mat RT21 = Mat::eye(4, 4, CV_64FC1);
 		Mat RT31 = Mat::eye(4, 4, CV_64FC1);
 
-		// ¼ÆËãRT21
+		// è®¡ç®—RT21
 		if (1) {
 			bool found;
 			vector<Point2f> pointBuf;
@@ -116,7 +113,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		// ¼ÆËãRT31
+		// è®¡ç®—RT31
 		if (1) {
 			bool found;
 			vector<Point2f> pointBuf;
@@ -156,7 +153,7 @@ int main(int argc, char *argv[]) {
 				cameraM.at<double>(2, 2) = 1.0;
 				Mat distCoe = Mat::zeros(Size(5, 1), CV_64FC1);
 
-				// flip¼ì²â½Çµãºó£¬×ø±êx½øĞĞ×ª»»µ½Ô­Ê¼Í¼Æ¬ÏÂ
+				// flipæ£€æµ‹è§’ç‚¹åï¼Œåæ ‡xè¿›è¡Œè½¬æ¢åˆ°åŸå§‹å›¾ç‰‡ä¸‹
 				for (int i = 0; i < pointBuf.size(); i++) {
 					pointBuf[i].x = ir_src.cols - pointBuf[i].x;
 				}
@@ -168,9 +165,7 @@ int main(int argc, char *argv[]) {
 				//waitKey();
 				string save_path3 = out_path;
 				imwrite(save_path3.append("_chessboard_3_src.png"), img_show_src);
-
 				solvePnPRansac(ObjectCorners, pointBuf, cameraM, distCoe, rvecs, tvecs);
-
 				CalculateTFM(RT31, rvecs, tvecs);
 			}
 			else {
@@ -181,7 +176,6 @@ int main(int argc, char *argv[]) {
 
 		Mat RT12 = RT21.inv();
 		Mat RT32 = RT12 * RT31;
-
 		Mat RT23 = RT32.inv();
 
 		double pt0_3_[4] = { 0, 0, 0, 1 };
@@ -250,12 +244,13 @@ int main(int argc, char *argv[]) {
 		Mat RT24 = RT42.inv();
 		Mat RT41 = RT21 * RT42;
 
-		// ±£´æRT41½á¹ûµ½txtÎÄµµ£¡
+		// ä¿å­˜RT41ç»“æœåˆ°txtæ–‡æ¡£ï¼
+		// RT41ï¼šä»ç›¸æœºè§†é‡ä¹‹å¤–çš„å¹³é¢ä¸–ç•Œåæ ‡åˆ°ç›¸æœºåæ ‡ç³»çš„è½¬æ¢RT
 		string save_path4 = out_path;
 		ofstream fout(save_path4.append("_RT41.txt"));
 		fout << "RT41: \n";
 		fout << RT41 << endl << endl;
-		cout << " " << fileNames[i] << "  RT41²ÎÊı±£´æÍê±Ï... ... ..." << endl << endl;
+		cout << " " << fileNames[i] << "  RT41å‚æ•°ä¿å­˜å®Œæ¯•... ... ..." << endl << endl;
 	}
 
 	//system("pause");
