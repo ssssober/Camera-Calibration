@@ -2,10 +2,12 @@
 #include <vector>
 #include <fstream>
 #include <string>
-
 using namespace std;
 using namespace cv;
 
+/*
+*** 批量程序：求解从相机视野之外的世界坐标(Xw,Yw,Zw)到相机坐标系(Xc,Yc,Zc)之前的转换关系RT
+*/
 
 // 补偿镜子厚度和棋盘厚度
 #define MIRROR_OFFSET 3
@@ -24,7 +26,6 @@ using namespace cv;
 void CalculateTFM(Mat &tfm, Mat rvecs, Mat tvecs);
 
 int main(int argc, char *argv[]) {
-
 	string floder_path = "..\\20210528\\1_97";  //存放相机棋盘格图片的目录
 	vector<cv::String> fileNames;
 	fileNames.clear();
@@ -104,7 +105,6 @@ int main(int argc, char *argv[]) {
 				cameraM.at<double>(2, 2) = 1.0;
 				Mat distCoe = Mat::zeros(Size(5, 1), CV_64FC1);
 				solvePnPRansac(ObjectCorners, pointBuf, cameraM, distCoe, rvecs, tvecs);
-
 				CalculateTFM(RT21, rvecs, tvecs);
 			}
 			else {
@@ -127,9 +127,7 @@ int main(int argc, char *argv[]) {
 			if (found)                // If done with success,
 			{
 				// improve the found corners' coordinate accuracy for chessboard
-				cornerSubPix(ir_src_f, pointBuf, Size(11, 11),
-					Size(-1, -1), TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
-
+				cornerSubPix(ir_src_f, pointBuf, Size(11, 11), Size(-1, -1), TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
 				Mat img_show = ir_src_f.clone();
 				cvtColor(img_show, img_show, CV_GRAY2BGR);
 				drawChessboardCorners(img_show, boardSize, pointBuf, found);
@@ -146,12 +144,13 @@ int main(int argc, char *argv[]) {
 
 				Mat rvecs, tvecs;
 				Mat cameraM = Mat::zeros(Size(3, 3), CV_64FC1);
+				//内参
 				cameraM.at<double>(0, 0) = f_x;
 				cameraM.at<double>(1, 1) = f_y;
 				cameraM.at<double>(0, 2) = c_x;
 				cameraM.at<double>(1, 2) = c_y;
 				cameraM.at<double>(2, 2) = 1.0;
-				Mat distCoe = Mat::zeros(Size(5, 1), CV_64FC1);
+				Mat distCoe = Mat::zeros(Size(5, 1), CV_64FC1); //畸变
 
 				// flip检测角点后，坐标x进行转换到原始图片下
 				for (int i = 0; i < pointBuf.size(); i++) {
@@ -261,10 +260,10 @@ void CalculateTFM(Mat &tfm, Mat rvecs, Mat tvecs)
 {
 	Mat Rotat = Mat::zeros(3, 3, CV_64F);
 	Rodrigues(rvecs, Rotat);
-
+	
 	Mat tf_Mat = Mat::eye(4, 4, CV_64F);
 	Rotat.copyTo(tf_Mat(Rect(0, 0, 3, 3)));
 	tvecs.copyTo(tf_Mat(Rect(3, 0, 1, 3)));
-
+	
 	tf_Mat.copyTo(tfm);
 }
